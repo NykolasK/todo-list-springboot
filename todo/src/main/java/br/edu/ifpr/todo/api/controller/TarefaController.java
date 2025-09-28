@@ -8,45 +8,79 @@ import br.edu.ifpr.todo.domain.service.TarefaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/tarefas")
+@RequestMapping("/api/tarefas")
 // @CrossOrigin(origins = "*") // Libere se for consumir de um front rodando
 
-// outra origem
 public class TarefaController {
-    private final TarefaService service;
+  private final TarefaService service;
 
-    public TarefaController(TarefaService service) {
-        this.service = service;
-    }
+  public TarefaController(TarefaService service) {
+    this.service = service;
+  }
 
-    @GetMapping("/add")
-    @ResponseStatus(HttpStatus.CREATED)
-    public TarefaResponse criarViaGet(
-            @RequestParam String nome,
-            @RequestParam(required = false) String descricao,
-            @RequestParam(required = false, defaultValue = "A_FAZER") TodoStatus status,
-            @RequestParam(required = false) Boolean importante,
-            @RequestParam(required = false) String dataEntrega) {
-        var dto = new TarefaRequest();
-        dto.setNome(nome);
-        dto.setDescricao(descricao);
-        dto.setStatus(status);
-        dto.setImportante(importante);
-        if (dataEntrega != null && !dataEntrega.isBlank()) {
-            dto.setDataEntrega(LocalDate.parse(dataEntrega)); // yyyy-MM-dd
-        }
-        Tarefa salvo = service.criar(dto);
-        return new TarefaResponse(
-                salvo.getId(),
-                salvo.getNome(),
-                salvo.getDescricao(),
-                salvo.getStatus(),
-                salvo.getDataCriacao(),
-                salvo.getDataEntrega(),
-                salvo.getImportante());
-    }
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public TarefaResponse criar(@Valid @RequestBody TarefaRequest dto) {
+    Tarefa salva = service.criar(dto);
+    return new TarefaResponse(
+        salva.getId(),
+        salva.getNome(),
+        salva.getDescricao(),
+        salva.getStatus(),
+        salva.getDataCriacao(),
+        salva.getDataEntrega(),
+        salva.getImportante());
+  }
+
+  @GetMapping
+  public List<TarefaResponse> listar(
+      @RequestParam(required = false) TodoStatus status,
+      @RequestParam(required = false) Boolean importante) {
+    List<Tarefa> tarefas = service.listar(null, status, importante, null);
+    return tarefas.stream()
+        .map(t -> new TarefaResponse(
+            t.getId(),
+            t.getNome(),
+            t.getDescricao(),
+            t.getStatus(),
+            t.getDataCriacao(),
+            t.getDataEntrega(),
+            t.getImportante()))
+        .toList();
+  }
+
+  @GetMapping("/{id}")
+  public TarefaResponse buscarPorId(@PathVariable Long id) {
+    Tarefa tarefa = service.buscarPorId(id);
+    return new TarefaResponse(
+        tarefa.getId(),
+        tarefa.getNome(),
+        tarefa.getDescricao(),
+        tarefa.getStatus(),
+        tarefa.getDataCriacao(),
+        tarefa.getDataEntrega(),
+        tarefa.getImportante());
+  }
+
+  @PatchMapping("/{id}")
+  public TarefaResponse atualizarParcial(@PathVariable Long id, @Valid @RequestBody TarefaRequest dto) {
+    Tarefa atualizada = service.atualizarParcial(id, dto);
+    return new TarefaResponse(
+        atualizada.getId(),
+        atualizada.getNome(),
+        atualizada.getDescricao(),
+        atualizada.getStatus(),
+        atualizada.getDataCriacao(),
+        atualizada.getDataEntrega(),
+        atualizada.getImportante());
+  }
+
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void excluir(@PathVariable Long id) {
+    service.excluir(id);
+  }
 }
